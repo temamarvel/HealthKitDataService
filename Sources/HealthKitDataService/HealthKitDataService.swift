@@ -45,7 +45,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         }
     }
     
-    func fetchLatestWeight() async throws -> Double? {
+    public func fetchLatestWeight() async throws -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .bodyMass) else { return nil }
         
         // Swift sort descriptor, а не NSSortDescriptor
@@ -63,7 +63,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return sample.quantity.doubleValue(for: .gramUnit(with: .kilo))
     }
     
-    func fetchLatestHeight() async throws -> Double? {
+    public func fetchLatestHeight() async throws -> Double? {
         guard let type = HKQuantityType.quantityType(forIdentifier: .height) else { return nil }
         
         let sort: SortDescriptor<HKQuantitySample> = .init(\.startDate, order: .reverse)
@@ -82,11 +82,11 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return meters * 100.0
     }
     
-    func fetchSex() throws -> HKBiologicalSex? {
+    public func fetchSex() throws -> HKBiologicalSex? {
         return try? healthStore.biologicalSex().biologicalSex
     }
     
-    func fetchAge() throws -> Int? {
+    public func fetchAge() throws -> Int? {
         var calculatedAge: Int?
         
         if let components = try? healthStore.dateOfBirthComponents(),
@@ -105,7 +105,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return basal + active
     }
     
-    func fetchEnergyToday(for id: HKQuantityTypeIdentifier) async throws -> Double {
+    public func fetchEnergyToday(for id: HKQuantityTypeIdentifier) async throws -> Double {
         guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return 0 }
         
         let now = Date()
@@ -125,7 +125,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return kcal
     }
     
-    func fetchEnergyDailySums(
+    public func fetchEnergyDailySums(
         for id: HKQuantityTypeIdentifier,
         in interval: DateInterval
     ) async throws -> [Date : Double] {
