@@ -29,7 +29,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return set
     }
     
-    init() {}
+    public init() {}
     
     public func requestAuthorization() async throws -> AuthorizationResult {
         guard HKHealthStore.isHealthDataAvailable() else {
