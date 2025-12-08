@@ -3,7 +3,7 @@ import SwiftData
 import Combine
 import HealthKit
 
-protocol HealthDataService: AnyObject {
+public protocol HealthDataService: AnyObject {
     func requestAuthorization() async throws -> AuthorizationResult
     
     func fetchLatestWeight() async throws -> Double?
