@@ -12,5 +12,5 @@ public protocol HealthDataService: AnyObject {
     func fetchAge() throws -> Int?
     
     func fetchEnergyToday(for id: HKQuantityTypeIdentifier) async throws -> Double
-    func fetchEnergyDailySums(for id: HKQuantityTypeIdentifier, in interval: DateInterval) async throws -> [Date : Double]
+    func fetchEnergySums(for id: HKQuantityTypeIdentifier, in interval: DateInterval, unit: Calendar.Component) async throws -> [Date : Double]
 }

@@ -125,9 +125,10 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return kcal
     }
     
-    public func fetchEnergyDailySums(
+    public func fetchEnergySums(
         for id: HKQuantityTypeIdentifier,
-        in interval: DateInterval
+        in interval: DateInterval,
+        unit: Calendar.Component
     ) async throws -> [Date : Double] {
         guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return [:] }
         let cal = Calendar.current
@@ -140,8 +141,8 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         let statsDesc = HKStatisticsCollectionQueryDescriptor(
             predicate: predicate,
             options: .cumulativeSum,
-            anchorDate: cal.startOfDay(for: interval.start),
-            intervalComponents: DateComponents(day: 1)
+            anchorDate: unit == .month ? cal.startOfMonth(for: interval.start) : cal.startOfDay(for: interval.start),
+            intervalComponents: unit == .month ? DateComponents(month: 1) : DateComponents(day: 1)
         )
         
         let collection = try await statsDesc.result(for: healthStore)
