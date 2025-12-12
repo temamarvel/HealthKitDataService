@@ -6,6 +6,14 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     private let healthStore = HKHealthStore()
     private(set) var isAuthorized: Bool = false
     
+    private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval in
+        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval)
+    }
+    
+    private lazy var activeEnergyCache = HealthDataCache(id: .activeEnergyBurned) { id, interval in
+        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval)
+    }
+    
     private var readTypes: Set<HKObjectType> {
         var set = Set<HKObjectType>()
         if let weight = HKObjectType.quantityType(forIdentifier: .bodyMass) {
@@ -143,6 +151,17 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
             anchorDate: cal.startOfDay(for: interval.start),
             intervalComponents: DateComponents(day: 1)
         )
+        return try await statsDesc.result(for: healthStore)
+    }
+    
+    func getFromCache(id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo]? {
+        if id == .activeEnergyBurned{
+            return try await activeEnergyCache.getCachedData(for: interval)
+        }
+        if id == .basalEnergyBurned{
+            return try await basalEnergyCache.getCachedData(for: interval)
+        }
+        return nil
     }
     
     public func fetchEnergySums(
@@ -165,15 +184,24 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
 //            intervalComponents: unit == .month ? DateComponents(month: 1) : DateComponents(day: 1)
 //        )
 //        
-//        let collection = try await statsDesc.result(for: healthStore)
-        
+        let collection = try await getFromCache(id: id, for: interval)
         
         var result: [Date: Double] = [:]
         
-        collection.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
-            let date = stats.startDate
-            let kcal = stats.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
-            result[date] = kcal
+        if let collection = collection{
+            
+            for dayInfo in collection {
+                let date = dayInfo.date
+                let kcal = dayInfo.value
+                result[date] = kcal
+            }
+            
+//            collection.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
+//                let date = stats.startDate
+//                let kcal = stats.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
+//                result[date] = kcal
+//            }
+        
         }
         
         return result

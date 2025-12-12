@@ -7,6 +7,7 @@
 
 import Foundation
 import HealthKit
+import Algorithms
 
 enum PositionToAdd{
     case left
@@ -19,7 +20,7 @@ struct DailyInfo {
     let value: Double
 }
 
-private struct HealthDataCache {
+struct HealthDataCache {
     private(set) var range: DateInterval? = nil
     private(set) var samples: [DailyInfo] = []
     let id: HKQuantityTypeIdentifier
@@ -32,20 +33,28 @@ private struct HealthDataCache {
         self.loadData = loadData
     }
     
-    func getData(for interval: DateInterval) async throws -> [DailyInfo]{
+    mutating func getData(for interval: DateInterval) async throws -> [DailyInfo]{
         try await ensureDataChached(for: interval)
         return try await getCachedData(for: interval)
     }
     
     func getCachedData(for interval: DateInterval) async throws -> [DailyInfo]{
-        
+        let startIndex = samples.partitioningIndex { sample in
+            sample.date >= interval.start
+        }
+
+        let endIndex = samples.partitioningIndex { sample in
+            sample.date >= interval.end
+        }
+
+        return Array(samples[startIndex..<endIndex])
     }
     
     
-    func ensureDataChached(for interval: DateInterval) async throws {
-        guard let type = HKQuantityType.quantityType(forIdentifier: id) else {
-            return
-        }
+    mutating func ensureDataChached(for interval: DateInterval) async throws {
+//        guard let type = HKQuantityType.quantityType(forIdentifier: id) else {
+//            return
+//        }
         
         var leftInterval: DateInterval? = nil
         var rightInterval: DateInterval? = nil
@@ -63,19 +72,19 @@ private struct HealthDataCache {
             }
         } else {
             let samplesToAdd = try await getSamples(for: id, for: interval)
-            try await addToCache(samples: samplesToAdd, for: interval)
+            try await addToCache(newSamples: samplesToAdd, for: interval, to: .middle)
                 
         }
         
         // Если всё уже покрыто кэшем — выходим
         if let lInterval = leftInterval {
             let samplesToAdd = try await getSamples(for: id, for: lInterval)
-            try await addToCache(samples: samplesToAdd, for: lInterval)
+            try await addToCache(newSamples: samplesToAdd, for: lInterval, to: .left)
         }
         
         if let rInterval = rightInterval {
             let samplesToAdd = try await getSamples(for: id, for: rInterval)
-            try await addToCache(samples: samplesToAdd, for: rInterval)
+            try await addToCache(newSamples: samplesToAdd, for: rInterval, to: .right)
         }
         
         // Для каждого недостающего кусочка делаем запрос в HealthKit
@@ -117,7 +126,7 @@ private struct HealthDataCache {
         
     }
     
-    func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
+    mutating func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
         switch position {
         case .left:
             let oldSamples = samples
@@ -125,12 +134,15 @@ private struct HealthDataCache {
             mergedSamples.reserveCapacity(oldSamples.count + newSamples.count)
             mergedSamples.append(contentsOf: newSamples)
             mergedSamples.append(contentsOf: oldSamples)
-            
         case .right:
+            samples.append(contentsOf: newSamples)
         case .middle:
-            
+            samples.append(contentsOf: newSamples)
         }
         
+        let newStart = min(range?.start ?? interval.start, interval.start)
+        let newEnd = max(range?.end ?? interval.end, interval.end)
+        range = DateInterval(start: newStart, end: newEnd)
     }
     
     func getSamples(for id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo] {
