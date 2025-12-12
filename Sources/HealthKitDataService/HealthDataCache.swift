@@ -38,7 +38,7 @@ struct HealthDataCache {
         return try await getCachedData(for: interval)
     }
     
-    func getCachedData(for interval: DateInterval) async throws -> [DailyInfo]{
+    private func getCachedData(for interval: DateInterval) async throws -> [DailyInfo]{
         let startIndex = samples.partitioningIndex { sample in
             sample.date >= interval.start
         }
@@ -51,7 +51,7 @@ struct HealthDataCache {
     }
     
     
-    mutating func ensureDataChached(for interval: DateInterval) async throws {
+    private mutating func ensureDataChached(for interval: DateInterval) async throws {
 //        guard let type = HKQuantityType.quantityType(forIdentifier: id) else {
 //            return
 //        }
@@ -126,7 +126,7 @@ struct HealthDataCache {
         
     }
     
-    mutating func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
+    private mutating func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
         switch position {
         case .left:
             let oldSamples = samples
@@ -145,7 +145,7 @@ struct HealthDataCache {
         range = DateInterval(start: newStart, end: newEnd)
     }
     
-    func getSamples(for id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo] {
+    private func getSamples(for id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo] {
         guard let collection = try await loadData(id, interval) else {
             return []
         }

@@ -156,10 +156,10 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     
     func getFromCache(id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo]? {
         if id == .activeEnergyBurned{
-            return try await activeEnergyCache.getCachedData(for: interval)
+            return try await activeEnergyCache.getData(for: interval)
         }
         if id == .basalEnergyBurned{
-            return try await basalEnergyCache.getCachedData(for: interval)
+            return try await basalEnergyCache.getData(for: interval)
         }
         return nil
     }
