@@ -133,7 +133,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return kcal
     }
     
-    private func fetchEnergyDailyStatisticsCollection(
+    func fetchEnergyDailyStatisticsCollection(
         for id: HKQuantityTypeIdentifier,
         in interval: DateInterval
     ) async throws -> HKStatisticsCollection? {
