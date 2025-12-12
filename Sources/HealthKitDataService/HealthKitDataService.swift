@@ -43,7 +43,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         guard HKHealthStore.isHealthDataAvailable() else {
             return AuthorizationResult(isAuthorized: false)
         }
-
+        
         do {
             try await healthStore.requestAuthorization(toShare: [], read: readTypes)
             return AuthorizationResult(isAuthorized: true)
@@ -169,21 +169,6 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         in interval: DateInterval,
         unit: Calendar.Component
     ) async throws -> [Date : Double] {
-//        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return [:] }
-//        let cal = Calendar.current
-//        
-//        let predicate = HKSamplePredicate.quantitySample(
-//            type: type,
-//            predicate: HKQuery.predicateForSamples(withStart: interval.start, end: interval.end)
-//        )
-//        
-//        let statsDesc = HKStatisticsCollectionQueryDescriptor(
-//            predicate: predicate,
-//            options: .cumulativeSum,
-//            anchorDate: unit == .month ? cal.startOfMonth(for: interval.start) : cal.startOfDay(for: interval.start),
-//            intervalComponents: unit == .month ? DateComponents(month: 1) : DateComponents(day: 1)
-//        )
-//        
         let collection = try await getFromCache(id: id, for: interval)
         
         var result: [Date: Double] = [:]
@@ -195,13 +180,6 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
                 let kcal = dayInfo.value
                 result[date] = kcal
             }
-            
-//            collection.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
-//                let date = stats.startDate
-//                let kcal = stats.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
-//                result[date] = kcal
-//            }
-        
         }
         
         return result

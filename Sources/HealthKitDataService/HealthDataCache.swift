@@ -52,23 +52,15 @@ struct HealthDataCache {
     
     
     private mutating func ensureDataChached(for interval: DateInterval) async throws {
-//        guard let type = HKQuantityType.quantityType(forIdentifier: id) else {
-//            return
-//        }
-        
         var leftInterval: DateInterval? = nil
         var rightInterval: DateInterval? = nil
         
         if let cachedRange = range {
-            // Нужен интервал левее уже имеющегося
             if interval.start < cachedRange.start {
                 leftInterval = DateInterval(start: interval.start, end: cachedRange.start)
             }
-            
-            // Нужен интервал правее уже имеющегося
             if interval.end > cachedRange.end {
                 rightInterval = DateInterval(start: cachedRange.end, end: interval.end)
-                
             }
         } else {
             let samplesToAdd = try await getSamples(for: id, for: interval)
@@ -76,7 +68,6 @@ struct HealthDataCache {
                 
         }
         
-        // Если всё уже покрыто кэшем — выходим
         if let lInterval = leftInterval {
             let samplesToAdd = try await getSamples(for: id, for: lInterval)
             try await addToCache(newSamples: samplesToAdd, for: lInterval, to: .left)
@@ -86,44 +77,6 @@ struct HealthDataCache {
             let samplesToAdd = try await getSamples(for: id, for: rInterval)
             try await addToCache(newSamples: samplesToAdd, for: rInterval, to: .right)
         }
-        
-        // Для каждого недостающего кусочка делаем запрос в HealthKit
-//        let sort = SortDescriptor<HKQuantitySample>(\.startDate, order: .forward)
-//        
-//        for part in intervalsToFetch {
-//            let predicate = HKSamplePredicate.quantitySample(
-//                type: type,
-//                predicate: HKQuery.predicateForSamples(withStart: part.start, end: part.end)
-//            )
-//            
-//            let descriptor = HKSampleQueryDescriptor(
-//                predicates: [predicate],
-//                sortDescriptors: [sort]
-//            )
-//            
-//            let results = try await descriptor.result(for: healthStore)
-//            let newSamples = results.compactMap { $0 as? HKQuantitySample }
-//            
-//            if !newSamples.isEmpty {
-//                cache.samples.append(contentsOf: newSamples)
-//            }
-//        }
-//        
-//        // Сортируем общий массив и расширяем диапазон
-//        cache.samples.sort { $0.startDate < $1.startDate }
-//        
-//        let newRange: DateInterval
-//        if let cachedRange = cache.range {
-//            let start = min(cachedRange.start, interval.start)
-//            let end = max(cachedRange.end, interval.end)
-//            newRange = DateInterval(start: start, end: end)
-//        } else {
-//            newRange = interval
-//        }
-//        cache.range = newRange
-//        
-//        energySampleCaches[id] = cache
-        
     }
     
     private mutating func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
