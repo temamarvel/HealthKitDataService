@@ -107,7 +107,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return calculatedAge
     }
     
-    func fetchTotalEnergyToday() async throws -> Double {
+    public func fetchTotalEnergyToday() async throws -> Double {
         let basal = try await fetchEnergyToday(for: .basalEnergyBurned)
         let active = try await fetchEnergyToday(for: .activeEnergyBurned)
         return basal + active
@@ -133,7 +133,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return kcal
     }
     
-    func fetchEnergyDailyStatisticsCollection(
+    private func fetchEnergyDailyStatisticsCollection(
         for id: HKQuantityTypeIdentifier,
         in interval: DateInterval
     ) async throws -> HKStatisticsCollection? {
@@ -154,7 +154,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return try await statsDesc.result(for: healthStore)
     }
     
-    func getFromCache(id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo]? {
+    private func getFromCache(id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo]? {
         if id == .activeEnergyBurned{
             return try await activeEnergyCache.getData(for: interval)
         }
@@ -167,14 +167,13 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     public func fetchEnergySums(
         for id: HKQuantityTypeIdentifier,
         in interval: DateInterval,
-        unit: Calendar.Component
+        by: AggregatePeriod
     ) async throws -> [Date : Double] {
         let collection = try await getFromCache(id: id, for: interval)
         
         var result: [Date: Double] = [:]
         
         if let collection = collection{
-            
             for dayInfo in collection {
                 let date = dayInfo.date
                 let kcal = dayInfo.value
