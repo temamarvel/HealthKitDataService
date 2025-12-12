@@ -6,12 +6,12 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     private let healthStore = HKHealthStore()
     private(set) var isAuthorized: Bool = false
     
-    private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval in
-        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval)
+    private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval, aggregatedBy in
+        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: aggregatedBy)
     }
     
-    private lazy var activeEnergyCache = HealthDataCache(id: .activeEnergyBurned) { id, interval in
-        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval)
+    private lazy var activeEnergyCache = HealthDataCache(id: .activeEnergyBurned) { id, interval, aggregatedBy in
+        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: aggregatedBy)
     }
     
     private var readTypes: Set<HKObjectType> {
@@ -135,7 +135,8 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     
     func fetchEnergyDailyStatisticsCollection(
         for id: HKQuantityTypeIdentifier,
-        in interval: DateInterval
+        in interval: DateInterval,
+        by aggregate: AggregatePeriod
     ) async throws -> HKStatisticsCollection? {
         guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
         let cal = Calendar.current
@@ -148,18 +149,18 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         let statsDesc = HKStatisticsCollectionQueryDescriptor(
             predicate: predicate,
             options: .cumulativeSum,
-            anchorDate: cal.startOfDay(for: interval.start),
-            intervalComponents: DateComponents(day: 1)
+            anchorDate: aggregate == .day ? cal.startOfDay(for: interval.start) : cal.startOfMonth(for: interval.start),
+            intervalComponents: aggregate == .day ? DateComponents(day: 1) : DateComponents(month: 1)
         )
         return try await statsDesc.result(for: healthStore)
     }
     
-    private func getFromCache(id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo]? {
+    private func getFromCache(id: HKQuantityTypeIdentifier, for interval: DateInterval, by aggregate: AggregatePeriod) async throws -> [any EnergyInfo]? {
         if id == .activeEnergyBurned{
-            return try await activeEnergyCache.getData(for: interval)
+            return try await activeEnergyCache.getData(for: interval, by: aggregate)
         }
         if id == .basalEnergyBurned{
-            return try await basalEnergyCache.getData(for: interval)
+            return try await basalEnergyCache.getData(for: interval, by: aggregate)
         }
         return nil
     }
@@ -167,9 +168,9 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     public func fetchEnergySums(
         for id: HKQuantityTypeIdentifier,
         in interval: DateInterval,
-        by: AggregatePeriod
+        by aggregate: AggregatePeriod
     ) async throws -> [Date : Double] {
-        let collection = try await getFromCache(id: id, for: interval)
+        let collection = try await getFromCache(id: id, for: interval, by: aggregate)
         
         var result: [Date: Double] = [:]
         
