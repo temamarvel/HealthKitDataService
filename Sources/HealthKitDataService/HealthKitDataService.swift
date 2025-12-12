@@ -125,12 +125,11 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return kcal
     }
     
-    public func fetchEnergySums(
+    func fetchEnergyDailyStatisticsCollection(
         for id: HKQuantityTypeIdentifier,
-        in interval: DateInterval,
-        unit: Calendar.Component
-    ) async throws -> [Date : Double] {
-        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return [:] }
+        in interval: DateInterval
+    ) async throws -> HKStatisticsCollection? {
+        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return nil }
         let cal = Calendar.current
         
         let predicate = HKSamplePredicate.quantitySample(
@@ -141,11 +140,33 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         let statsDesc = HKStatisticsCollectionQueryDescriptor(
             predicate: predicate,
             options: .cumulativeSum,
-            anchorDate: unit == .month ? cal.startOfMonth(for: interval.start) : cal.startOfDay(for: interval.start),
-            intervalComponents: unit == .month ? DateComponents(month: 1) : DateComponents(day: 1)
+            anchorDate: cal.startOfDay(for: interval.start),
+            intervalComponents: DateComponents(day: 1)
         )
+    }
+    
+    public func fetchEnergySums(
+        for id: HKQuantityTypeIdentifier,
+        in interval: DateInterval,
+        unit: Calendar.Component
+    ) async throws -> [Date : Double] {
+//        guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return [:] }
+//        let cal = Calendar.current
+//        
+//        let predicate = HKSamplePredicate.quantitySample(
+//            type: type,
+//            predicate: HKQuery.predicateForSamples(withStart: interval.start, end: interval.end)
+//        )
+//        
+//        let statsDesc = HKStatisticsCollectionQueryDescriptor(
+//            predicate: predicate,
+//            options: .cumulativeSum,
+//            anchorDate: unit == .month ? cal.startOfMonth(for: interval.start) : cal.startOfDay(for: interval.start),
+//            intervalComponents: unit == .month ? DateComponents(month: 1) : DateComponents(day: 1)
+//        )
+//        
+//        let collection = try await statsDesc.result(for: healthStore)
         
-        let collection = try await statsDesc.result(for: healthStore)
         
         var result: [Date: Double] = [:]
         
