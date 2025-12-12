@@ -8,6 +8,12 @@
 import Foundation
 import HealthKit
 
+enum PositionToAdd{
+    case left
+    case right
+    case middle
+}
+
 struct DailyInfo {
     let date: Date
     let value: Double
@@ -111,12 +117,35 @@ private struct HealthDataCache {
         
     }
     
-    func addToCache(samples: [DailyInfo], for interval: DateInterval) async throws {
+    func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
+        switch position {
+        case .left:
+            let oldSamples = samples
+            var mergedSamples: [DailyInfo] = []
+            mergedSamples.reserveCapacity(oldSamples.count + newSamples.count)
+            mergedSamples.append(contentsOf: newSamples)
+            mergedSamples.append(contentsOf: oldSamples)
+            
+        case .right:
+        case .middle:
+            
+        }
         
     }
     
     func getSamples(for id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyInfo] {
-        let stats = try await loadData(id, interval)
+        guard let collection = try await loadData(id, interval) else {
+            return []
+        }
         
+        var result: [DailyInfo] = []
+        
+        collection.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
+            let date = stats.startDate
+            let kcal = stats.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
+            result.append(DailyInfo(date: date, value: kcal))
+        }
+        
+        return result
     }
 }
