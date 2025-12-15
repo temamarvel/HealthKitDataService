@@ -143,7 +143,7 @@ struct HealthDataCache {
                         kcal: monthSum
                     )
                 }
-                //.sorted { $0.monthStart < $1.monthStart }
+                .sorted { $0.monthStart < $1.monthStart }
         }
     
     private mutating func updateCache(newSamples: [DailyEnergyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
