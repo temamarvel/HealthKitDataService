@@ -183,7 +183,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
             }
             
             
-            result[startOfLastPeriod]! = try await fetchEnergyToday(for: id)
+            result[startOfLastPeriod] = try await fetchEnergyToday(for: id)
         }
         
         return result
