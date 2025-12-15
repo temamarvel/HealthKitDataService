@@ -61,7 +61,7 @@ protocol EnergyInfo: Identifiable {
 
 struct HealthDataCache {
     private(set) var range: DateInterval? = nil
-    private(set) var daylyInfos: [DailyEnergyInfo] = []
+    private(set) var dailyInfos: [DailyEnergyInfo] = []
     private(set) var monthlyInfos: [MonthlyEnergyInfo] = []
     let id: HKQuantityTypeIdentifier
     
@@ -73,12 +73,21 @@ struct HealthDataCache {
         self.loadDailyData = loadData
     }
     
-    mutating func getData(for interval: DateInterval, by: AggregatePeriod) async throws -> [any EnergyInfo]{
+    mutating func getData(for interval: DateInterval, by aggregate: AggregatePeriod) async throws -> [any EnergyInfo]{
         try await ensureDataChached(for: interval)
-        return try await getCachedData(for: interval)
+        
+        switch aggregate {
+        case .day:
+            return try await getCachedData(samples: dailyInfos, for: interval)
+        case .month:
+            return try await getCachedData(samples: monthlyInfos, for: interval)
+        case .week:
+            // TODO:
+            return []
+        }
     }
     
-    private func getCachedData(for interval: DateInterval) async throws -> [any EnergyInfo]{
+    private func getCachedData(samples: [any EnergyInfo], for interval: DateInterval) async throws -> [any EnergyInfo]{
         let startIndex = samples.partitioningIndex { sample in
             sample.date >= interval.start
         }
@@ -119,19 +128,39 @@ struct HealthDataCache {
         }
     }
     
+    private func aggregatedByMonth(dailyInfos: [DailyEnergyInfo], calendar: Calendar = .current) -> [MonthlyEnergyInfo] {
+            let groupedByMonth = Dictionary(grouping: dailyInfos) { item in
+                let dateComponents = calendar.dateComponents([.year, .month], from: item.date)
+                return calendar.date(from: dateComponents)! // это будет 1-е число месяца в 00:00
+            }
+
+            return groupedByMonth
+                .map { (monthStart, items) in
+                    let monthSum = items.reduce(0) { $0 + $1.kcal }
+                
+                    return MonthlyEnergyInfo(
+                        monthStart: monthStart,
+                        kcal: monthSum
+                    )
+                }
+                //.sorted { $0.monthStart < $1.monthStart }
+        }
+    
     private mutating func updateCache(newSamples: [DailyEnergyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
         switch position {
         case .left:
-            let oldSamples = daylyInfos
+            let oldSamples = dailyInfos
             var mergedSamples: [DailyEnergyInfo] = []
             mergedSamples.reserveCapacity(oldSamples.count + newSamples.count)
             mergedSamples.append(contentsOf: newSamples)
             mergedSamples.append(contentsOf: oldSamples)
         case .right:
-            daylyInfos.append(contentsOf: newSamples)
+            dailyInfos.append(contentsOf: newSamples)
         case .middle:
-            daylyInfos.append(contentsOf: newSamples)
+            dailyInfos.append(contentsOf: newSamples)
         }
+        
+        monthlyInfos = aggregatedByMonth(dailyInfos: dailyInfos)
         
         let newStart = min(range?.start ?? interval.start, interval.start)
         let newEnd = max(range?.end ?? interval.end, interval.end)
