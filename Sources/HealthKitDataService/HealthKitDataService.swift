@@ -180,6 +180,16 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
                 let kcal = dayInfo.value
                 result[date] = kcal
             }
+            
+            var startOfLastPeriod: Date = Calendar.current.startOfDay(for: Date())
+            switch aggregate {
+            case .day: startOfLastPeriod
+            case .week: startOfLastPeriod// TODO: implement
+            case .month: startOfLastPeriod = Calendar.current.startOfMonth(for: Date())
+            }
+            
+            
+            result[startOfLastPeriod]! += try await fetchTotalEnergyToday()
         }
         
         return result
