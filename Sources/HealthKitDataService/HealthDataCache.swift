@@ -154,6 +154,7 @@ struct HealthDataCache {
             mergedSamples.reserveCapacity(oldSamples.count + newSamples.count)
             mergedSamples.append(contentsOf: newSamples)
             mergedSamples.append(contentsOf: oldSamples)
+            dailyInfos = mergedSamples
         case .right:
             dailyInfos.append(contentsOf: newSamples)
         case .middle:
