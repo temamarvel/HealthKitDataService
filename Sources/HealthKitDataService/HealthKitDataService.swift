@@ -107,12 +107,6 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return calculatedAge
     }
     
-    public func fetchTotalEnergyToday() async throws -> Double {
-        let basal = try await fetchEnergyToday(for: .basalEnergyBurned)
-        let active = try await fetchEnergyToday(for: .activeEnergyBurned)
-        return basal + active
-    }
-    
     public func fetchEnergyToday(for id: HKQuantityTypeIdentifier) async throws -> Double {
         guard let type = HKQuantityType.quantityType(forIdentifier: id) else { return 0 }
         
@@ -189,7 +183,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
             }
             
             
-            result[startOfLastPeriod]! = try await fetchTotalEnergyToday()
+            result[startOfLastPeriod]! = try await fetchEnergyToday(for: id)
         }
         
         return result
