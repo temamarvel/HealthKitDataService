@@ -189,7 +189,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
             }
             
             
-            result[startOfLastPeriod]! += try await fetchTotalEnergyToday()
+            result[startOfLastPeriod]! = try await fetchTotalEnergyToday()
         }
         
         return result
