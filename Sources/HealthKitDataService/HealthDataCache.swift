@@ -65,12 +65,12 @@ struct HealthDataCache {
     private(set) var monthlyInfos: [MonthlyEnergyInfo] = []
     let id: HKQuantityTypeIdentifier
     
-    typealias Loader = (_ id: HKQuantityTypeIdentifier, _ interval: DateInterval, _ aggravatedBy: AggregatePeriod) async throws -> HKStatisticsCollection?
-    private let loadData: Loader
+    typealias Loader = (_ id: HKQuantityTypeIdentifier, _ interval: DateInterval) async throws -> HKStatisticsCollection?
+    private let loadDailyData: Loader
 
     init(id: HKQuantityTypeIdentifier, loadData: @escaping Loader) {
         self.id = id
-        self.loadData = loadData
+        self.loadDailyData = loadData
     }
     
     mutating func getData(for interval: DateInterval, by: AggregatePeriod) async throws -> [any EnergyInfo]{
@@ -103,34 +103,34 @@ struct HealthDataCache {
                 rightInterval = DateInterval(start: cachedRange.end, end: interval.end)
             }
         } else {
-            let samplesToAdd = try await getSamples(for: id, for: interval)
-            try await addToCache(newSamples: samplesToAdd, for: interval, to: .middle)
+            let samplesToAdd = try await getDailySamples(for: id, for: interval)
+            try await updateCache(newSamples: samplesToAdd, for: interval, to: .middle)
                 
         }
         
         if let lInterval = leftInterval {
-            let samplesToAdd = try await getSamples(for: id, for: lInterval)
-            try await addToCache(newSamples: samplesToAdd, for: lInterval, to: .left)
+            let samplesToAdd = try await getDailySamples(for: id, for: lInterval)
+            try await updateCache(newSamples: samplesToAdd, for: lInterval, to: .left)
         }
         
         if let rInterval = rightInterval {
-            let samplesToAdd = try await getSamples(for: id, for: rInterval)
-            try await addToCache(newSamples: samplesToAdd, for: rInterval, to: .right)
+            let samplesToAdd = try await getDailySamples(for: id, for: rInterval)
+            try await updateCache(newSamples: samplesToAdd, for: rInterval, to: .right)
         }
     }
     
-    private mutating func addToCache(newSamples: [DailyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
+    private mutating func updateCache(newSamples: [DailyEnergyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
         switch position {
         case .left:
-            let oldSamples = samples
-            var mergedSamples: [DailyInfo] = []
+            let oldSamples = daylyInfos
+            var mergedSamples: [DailyEnergyInfo] = []
             mergedSamples.reserveCapacity(oldSamples.count + newSamples.count)
             mergedSamples.append(contentsOf: newSamples)
             mergedSamples.append(contentsOf: oldSamples)
         case .right:
-            samples.append(contentsOf: newSamples)
+            daylyInfos.append(contentsOf: newSamples)
         case .middle:
-            samples.append(contentsOf: newSamples)
+            daylyInfos.append(contentsOf: newSamples)
         }
         
         let newStart = min(range?.start ?? interval.start, interval.start)
@@ -138,26 +138,17 @@ struct HealthDataCache {
         range = DateInterval(start: newStart, end: newEnd)
     }
     
-    private func getSamples(for id: HKQuantityTypeIdentifier, for interval: DateInterval, by aggregate: AggregatePeriod) async throws -> [any EnergyInfo] {
-        guard let collection = try await loadData(id, interval, aggregate) else {
+    private func getDailySamples(for id: HKQuantityTypeIdentifier, for interval: DateInterval) async throws -> [DailyEnergyInfo] {
+        guard let collection = try await loadDailyData(id, interval) else {
             return []
         }
         
-        var result: [any EnergyInfo] = []
-        
-        let createInfo = { (date: Date, value: Double) -> any EnergyInfo in
-            switch aggregate {
-            case .day:
-                return DailyEnergyInfo(dayStart: date, kcal: value)
-            case .month:
-                return MonthlyEnergyInfo(monthStart: date, kcal: value)
-            }
-        }
+        var result: [DailyEnergyInfo] = []
         
         collection.enumerateStatistics(from: interval.start, to: interval.end) { stats, _ in
             let date = stats.startDate
             let kcal = stats.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
-            result.append(createInfo(date, kcal))
+            result.append(DailyEnergyInfo(dayStart: date, kcal: kcal))
         }
         
         return result

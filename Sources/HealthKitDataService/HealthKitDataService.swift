@@ -6,12 +6,12 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     private let healthStore = HKHealthStore()
     private(set) var isAuthorized: Bool = false
     
-    private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval, aggregatedBy in
-        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: aggregatedBy)
+    private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval in
+        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: .day)
     }
     
-    private lazy var activeEnergyCache = HealthDataCache(id: .activeEnergyBurned) { id, interval, aggregatedBy in
-        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: aggregatedBy)
+    private lazy var activeEnergyCache = HealthDataCache(id: .activeEnergyBurned) { id, interval in
+        try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: .day)
     }
     
     private var readTypes: Set<HKObjectType> {

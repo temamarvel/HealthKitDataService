@@ -7,5 +7,6 @@
 
 public enum AggregatePeriod {
     case day
+    case week
     case month
 }
