@@ -146,7 +146,7 @@ struct HealthDataCache {
                 .sorted { $0.monthStart < $1.monthStart }
         }
     
-    private mutating func updateCache(newSamples: [DailyEnergyInfo], for interval: DateInterval, to position: PositionToAdd ) async throws {
+    private mutating func updateCache(newSamples: [DailyEnergyInfo], for interval: DateInterval, to position: PositionToAdd, calendar: Calendar = .current ) async throws {
         switch position {
         case .left:
             let oldSamples = dailyInfos
@@ -164,7 +164,9 @@ struct HealthDataCache {
         monthlyInfos = aggregatedByMonth(dailyInfos: dailyInfos)
         
         let newStart = min(range?.start ?? interval.start, interval.start)
-        let newEnd = max(range?.end ?? interval.end, interval.end)
+        let end = max(range?.end ?? interval.end, interval.end)
+        let lastDay = calendar.date(byAdding: .day, value: -1, to: end) ?? end
+        let newEnd = calendar.startOfDay(for: lastDay)
         range = DateInterval(start: newStart, end: newEnd)
     }
     
