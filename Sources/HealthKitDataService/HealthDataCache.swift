@@ -164,8 +164,7 @@ struct HealthDataCache {
         monthlyInfos = aggregatedByMonth(dailyInfos: dailyInfos)
         
         let newStart = min(range?.start ?? interval.start, interval.start)
-        let end = max(range?.end ?? interval.end, interval.end)
-        let newEnd = Calendar.current.date(byAdding: .day, value: -1, to: end) ?? end
+        let newEnd = max(range?.end ?? interval.end, interval.end)
         range = DateInterval(start: newStart, end: newEnd)
     }
     
