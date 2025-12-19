@@ -6,7 +6,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
     private let healthStore = HKHealthStore()
     private(set) var isAuthorized: Bool = false
     // TODO:
-    public var basalEnergyDelta: Double = 0
+    public var bmr: Double = 0
     
     private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval in
         try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: .day)
