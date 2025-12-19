@@ -5,8 +5,6 @@ import Combine
 public final class HealthKitDataService: ObservableObject, HealthDataService {
     private let healthStore = HKHealthStore()
     private(set) var isAuthorized: Bool = false
-    // TODO:
-    public var basalEnergyDelta: Double = 0
     
     private lazy var basalEnergyCache = HealthDataCache(id: .basalEnergyBurned) { id, interval in
         try await self.fetchEnergyDailyStatisticsCollection(for: id, in: interval, by: .day)
@@ -39,7 +37,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         return set
     }
     
-    public init() { }
+    public init() {}
     
     public func requestAuthorization() async throws -> AuthorizationResult {
         guard HKHealthStore.isHealthDataAvailable() else {
@@ -125,11 +123,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         )
         
         let stats = try await statsDescriptor.result(for: healthStore)
-        
-        let rawKcal = stats?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
-        let adjustedKcal = (id == .basalEnergyBurned) ? (rawKcal - basalEnergyDelta) : rawKcal
-        let kcal = max(0, adjustedKcal)
-        
+        let kcal = stats?.sumQuantity()?.doubleValue(for: .kilocalorie()) ?? 0
         return kcal
     }
     
@@ -177,7 +171,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
         if let collection = collection{
             for dayInfo in collection {
                 let date = dayInfo.date
-                let kcal = id == .basalEnergyBurned ? dayInfo.value - basalEnergyDelta : dayInfo.value
+                let kcal = dayInfo.value
                 result[date] = kcal
             }
             
@@ -187,6 +181,7 @@ public final class HealthKitDataService: ObservableObject, HealthDataService {
             case .week: startOfLastPeriod// TODO: implement
             case .month: startOfLastPeriod = Calendar.current.startOfMonth(for: Date())
             }
+            
             
             result[startOfLastPeriod] = try await fetchEnergyToday(for: id)
         }
